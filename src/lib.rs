@@ -75,7 +75,8 @@ pub fn construct(v: &LV) -> mlua::Result<Dec> {
 }
 
 fn checked(r: Option<Decimal>) -> mlua::Result<Dec> {
-    r.map(|d| Dec(canonical(d))).ok_or_else(|| rt(DECIMAL_RANGE))
+    r.map(|d| Dec(canonical(d)))
+        .ok_or_else(|| rt(DECIMAL_RANGE))
 }
 
 /// A zero has no sign: `-0.00` is `0.00`, as in .NET.

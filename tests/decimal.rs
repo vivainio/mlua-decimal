@@ -145,9 +145,15 @@ fn min_takes_the_later_of_equal_values_and_max_the_earlier() {
 #[test]
 fn explicit_float_conversion_and_table_keys() {
     assert_eq!(eval(r#"return tostring(D.from_float(0.1))"#), "0.1");
-    assert_eq!(eval(r#"return tostring(D.from_float(1/3))"#), "0.3333333333333333");
+    assert_eq!(
+        eval(r#"return tostring(D.from_float(1/3))"#),
+        "0.3333333333333333"
+    );
     fails(r#"return D.from_float(0/0)"#, "no Decimal value");
-    assert_eq!(eval(r#"return D"1.50":key() .. "," .. D"1.5":key()"#), "1.5,1.5");
+    assert_eq!(
+        eval(r#"return D"1.50":key() .. "," .. D"1.5":key()"#),
+        "1.5,1.5"
+    );
     assert_eq!(
         eval(r#"local t = {} t[D"1.50":key()] = "x" return t[D"1.5":key()]"#),
         "x"
