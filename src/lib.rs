@@ -67,7 +67,7 @@ pub fn construct(v: &LV) -> mlua::Result<Dec> {
             let t = text.trim();
             t.parse::<Decimal>()
                 .or_else(|_| Decimal::from_scientific(t))
-                .map(Dec)
+                .map(|d| Dec(canonical(d)))
                 .map_err(|_| rt(format!("Cannot convert \"{text}\" to a Decimal")))
         }
         other => operand(other).map(Dec),
@@ -75,7 +75,27 @@ pub fn construct(v: &LV) -> mlua::Result<Dec> {
 }
 
 fn checked(r: Option<Decimal>) -> mlua::Result<Dec> {
-    r.map(Dec).ok_or_else(|| rt(DECIMAL_RANGE))
+    r.map(|d| Dec(canonical(d))).ok_or_else(|| rt(DECIMAL_RANGE))
+}
+
+/// A zero has no sign: `-0.00` is `0.00`, as in .NET.
+fn canonical(mut d: Decimal) -> Decimal {
+    if d.is_zero() && d.is_sign_negative() {
+        d.set_sign_positive(true);
+    }
+    d
+}
+
+/// `rust_decimal` drops the scale of a result when one operand is zero (`0.00 + 1.5` is `1.5`, `0 * 123.456` is `0`); the scale of a
+/// sum is the larger of the two and the scale of a product is their sum (at most 28), so restore it.
+fn with_scale(r: Option<Decimal>, scale: u32) -> Option<Decimal> {
+    r.map(|mut d| {
+        let wanted = scale.min(28);
+        if d.scale() < wanted {
+            d.rescale(wanted);
+        }
+        d
+    })
 }
 
 fn nonzero(d: Decimal) -> mlua::Result<Decimal> {
@@ -132,9 +152,15 @@ impl UserData for Dec {
     }
 
     fn add_methods<M: UserDataMethods<Self>>(m: &mut M) {
-        binary(m, MetaMethod::Add, |a, b| checked(a.checked_add(b)));
-        binary(m, MetaMethod::Sub, |a, b| checked(a.checked_sub(b)));
-        binary(m, MetaMethod::Mul, |a, b| checked(a.checked_mul(b)));
+        binary(m, MetaMethod::Add, |a, b| {
+            checked(with_scale(a.checked_add(b), a.scale().max(b.scale())))
+        });
+        binary(m, MetaMethod::Sub, |a, b| {
+            checked(with_scale(a.checked_sub(b), a.scale().max(b.scale())))
+        });
+        binary(m, MetaMethod::Mul, |a, b| {
+            checked(with_scale(a.checked_mul(b), a.scale() + b.scale()))
+        });
         binary(m, MetaMethod::Div, |a, b| {
             checked(a.checked_div(nonzero(b)?))
         });
@@ -146,7 +172,7 @@ impl UserData for Dec {
         binary(m, MetaMethod::IDiv, |a, b| {
             checked(a.checked_div(nonzero(b)?).map(|q| q.floor()))
         });
-        m.add_meta_method(MetaMethod::Unm, |_, a, ()| Ok(Dec(-a.0)));
+        m.add_meta_method(MetaMethod::Unm, |_, a, ()| Ok(Dec(canonical(-a.0))));
         m.add_meta_method(MetaMethod::ToString, |_, a, ()| Ok(a.0.to_string()));
         // Luau only calls these with a userdata on both sides
         m.add_meta_function(
@@ -196,6 +222,8 @@ impl UserData for Dec {
         m.add_method("scale", |_, a, ()| Ok(a.0.scale()));
         m.add_method("normalize", |_, a, ()| Ok(Dec(a.0.normalize())));
         m.add_method("is_integer", |_, a, ()| Ok(a.0.is_integer()));
+        // a string that is the same for equal values, so that it can key a table: D"1.50":key() and D"1.5":key() are both "1.5"
+        m.add_method("key", |_, a, ()| Ok(a.0.normalize().to_string()));
         // the explicit, lossy way out
         m.add_method("to_number", |_, a, ()| Ok(a.0.to_f64().unwrap_or(f64::NAN)));
     }
@@ -205,8 +233,9 @@ fn extreme(args: mlua::Variadic<LV>, name: &str, keep: Ordering) -> mlua::Result
     let mut best: Option<Decimal> = None;
     for a in args.iter() {
         let d = operand(a)?;
+        // for equal values max keeps the earlier one and min takes the later one, like Math.Max and Math.Min in .NET
         best = Some(match best {
-            Some(b) if d.cmp(&b) != keep => b,
+            Some(b) if d.cmp(&b) != keep && !(keep == Ordering::Less && d == b) => b,
             _ => d,
         });
     }
@@ -235,6 +264,15 @@ pub fn install(lua: &Lua) -> mlua::Result<()> {
                     .ok_or_else(|| rt(DECIMAL_RANGE))?;
             }
             Ok(Dec(sum))
+        })?,
+    )?;
+    // D.from_float(0.1): the explicit way to turn a float into a decimal, with the float's shortest round-trip digits (`0.1` is exactly 0.1)
+    d.set(
+        "from_float",
+        lua.create_function(|_, f: f64| {
+            from_f64(f)
+                .map(|d| Dec(canonical(d)))
+                .ok_or_else(|| rt(format!("{f} has no Decimal value")))
         })?,
     )?;
     let meta = lua.create_table()?;

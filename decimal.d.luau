@@ -30,6 +30,8 @@ declare extern type Decimal with
 	-- without trailing zeros: D"1.50":normalize() is 1.5
 	function normalize(self): Decimal
 	function is_integer(self): boolean
+	-- a string that is the same for equal values, to key a table: D"1.50":key() == D"1.5":key()
+	function key(self): string
 	-- the explicit, lossy way out to a Luau number
 	function to_number(self): number
 end
@@ -41,4 +43,6 @@ declare D: ((v: any) -> Decimal) & {
 	max: (...(Decimal | number)) -> Decimal,
 	min: (...(Decimal | number)) -> Decimal,
 	sum: ({ Decimal | number }) -> Decimal,
+	-- the explicit way to turn a float into a decimal: D.from_float(0.1) is exactly 0.1
+	from_float: (f: number) -> Decimal,
 }

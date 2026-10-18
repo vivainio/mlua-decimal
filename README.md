@@ -12,7 +12,8 @@ lua.load(r#"print(D"0.1" + D"0.2")"#).exec()?;   // 0.3
 In Lua: `D"12.50"`, `D(3)`, `D.max(...)`, `D.min(...)`, `D.sum(list)`; arithmetic `+ - * / // %`; ordering `< <= ==`
 between decimals; `d:round(digits, mode)` (`half_even` default, `half_up`, `half_down`, `down`, `up`, `floor`, `ceil`;
 negative digits round to tens), `floor`, `ceil`, `trunc`, `abs`, `sign`, `scale`, `normalize`, `is_integer`,
-`cmp`/`eq`/`lt`/`le`, `to_number`.
+`cmp`/`eq`/`lt`/`le`, `key` (a string for equal values, to key a table), `to_number`; and `D.from_float(x)` for the explicit
+conversion from a float.
 
 Deliberate rules, so a precision bug is loud:
 
