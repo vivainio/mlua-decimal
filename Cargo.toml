@@ -1,0 +1,20 @@
+[package]
+name = "mlua-decimal"
+version = "0.1.0"
+edition = "2021"
+description = "An exact base-10 Decimal userdata and the global D() for mlua (Luau and Lua)"
+license = "MIT"
+repository = "https://github.com/vivainio/mlua-decimal"
+keywords = ["mlua", "luau", "lua", "decimal"]
+categories = ["mathematics"]
+
+[dependencies]
+mlua = "0.12.2"
+rust_decimal = "1"
+
+[features]
+default = ["luau"]
+luau = ["mlua/luau", "mlua/vendored"]
+lua54 = ["mlua/lua54", "mlua/vendored"]
+lua51 = ["mlua/lua51", "mlua/vendored"]
+luajit = ["mlua/luajit", "mlua/vendored"]
