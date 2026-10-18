@@ -22,6 +22,7 @@ print(D"7" // 2)        -- 3
 print(D"7.5" % 2)       -- 1.5
 ```
 
+A zero keeps its scale (`D"0.00" + D"1.5"` is `1.50`, `D"0" * D"123.456"` is `0.000`) and has no sign (`D"-0.00"` is `0.00`).
 Division by zero is `Attempted to divide by zero.`, and a result beyond 28 digits is
 `Value was either too large or too small for a Decimal.`
 
@@ -58,6 +59,8 @@ price:cmp(20)        -- -1, 0 or 1
 | `d:is_integer()` | |
 | `d:cmp(x)`, `d:eq(x)`, `d:lt(x)`, `d:le(x)` | `x` is a decimal or an integer |
 | `d:to_number()` | the explicit, lossy way out to a Lua number |
+| `D.from_float(x)` | the explicit way in from a float, with its shortest round-trip digits: `D.from_float(0.1)` is exactly 0.1 (`D(0.1)` stays an error) |
+| `d:key()` | a string that is the same for equal values, to key a table: `D"1.50":key()` and `D"1.5":key()` are both `"1.5"`. A decimal itself keys a table by identity, so `t[D"1.5"]` finds nothing |
 | `tostring(d)` | the digits, with their scale |
 | `D.max(...)`, `D.min(...)`, `D.sum(list)` | over decimals and integers |
 

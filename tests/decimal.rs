@@ -118,3 +118,44 @@ fn rust_side() {
     assert_eq!(mlua_decimal::from_f64(0.1).unwrap().to_string(), "0.1");
     assert!(mlua_decimal::from_f64(f64::NAN).is_none());
 }
+
+#[test]
+fn the_scale_is_kept_when_an_operand_is_zero() {
+    assert_eq!(eval(r#"return tostring(D"0.00" + D"1.5")"#), "1.50");
+    assert_eq!(eval(r#"return tostring(D"1.5" - D"0.00")"#), "1.50");
+    assert_eq!(eval(r#"return tostring(D"0" * D"123.456")"#), "0.000");
+    assert_eq!(eval(r#"return tostring(D"2.50" - D"2.5")"#), "0.00");
+    assert_eq!(eval(r#"return tostring(D"1.10" * 3)"#), "3.30");
+}
+
+#[test]
+fn zero_has_no_sign() {
+    assert_eq!(eval(r#"return tostring(D"-0.00")"#), "0.00");
+    assert_eq!(eval(r#"return tostring(-D"0")"#), "0");
+    assert_eq!(eval(r#"return tostring(D"-1" * 0)"#), "0");
+}
+
+#[test]
+fn min_takes_the_later_of_equal_values_and_max_the_earlier() {
+    assert_eq!(eval(r#"return tostring(D.min(D"1.50", D"1.5"))"#), "1.5");
+    assert_eq!(eval(r#"return tostring(D.max(D"1.50", D"1.5"))"#), "1.50");
+    assert_eq!(eval(r#"return tostring(D.max(D"1.5", D"1.50"))"#), "1.5");
+}
+
+#[test]
+fn explicit_float_conversion_and_table_keys() {
+    assert_eq!(eval(r#"return tostring(D.from_float(0.1))"#), "0.1");
+    assert_eq!(
+        eval(r#"return tostring(D.from_float(1/3))"#),
+        "0.3333333333333333"
+    );
+    fails(r#"return D.from_float(0/0)"#, "no Decimal value");
+    assert_eq!(
+        eval(r#"return D"1.50":key() .. "," .. D"1.5":key()"#),
+        "1.5,1.5"
+    );
+    assert_eq!(
+        eval(r#"local t = {} t[D"1.50":key()] = "x" return t[D"1.5":key()]"#),
+        "x"
+    );
+}
