@@ -141,6 +141,8 @@ impl UserData for Dec {
         binary(m, MetaMethod::Mod, |a, b| {
             checked(a.checked_rem(nonzero(b)?))
         });
+        // Lua 5.1 and LuaJIT have no `//`
+        #[cfg(not(any(feature = "lua51", feature = "luajit")))]
         binary(m, MetaMethod::IDiv, |a, b| {
             checked(a.checked_div(nonzero(b)?).map(|q| q.floor()))
         });

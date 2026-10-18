@@ -32,6 +32,7 @@ declare extern type Decimal with
 	function is_integer(self): boolean
 	-- the explicit, lossy way out to a Luau number
 	function to_number(self): number
+end
 
 -- D"12.50", D(3) or D(d): a Decimal from its text, an integer or a Decimal (a float with a fraction is refused).
 -- It takes `any` on purpose: `local price = D(row.Price)` types a cell, a variable or an `evaluate` result, which the

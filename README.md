@@ -27,4 +27,6 @@ the script runs.
 From Rust: `Dec(Decimal)` converts into Lua values, `as_decimal(&AnyUserData)` reads one back, and
 `from_f64(f64)` gives a float's shortest round-trip digits as a `Decimal`.
 
+Documentation: <https://vivainio.github.io/mlua-decimal/>
+
 Features: `luau` (default), `lua54`, `lua51`, `luajit`; each also enables mlua's `vendored`.
